@@ -114,8 +114,9 @@ export function VoiceSheet({ visible, onClose, onTranscript }: { visible: boolea
     getRecordingPermissionsAsync()
       .then((p) => (p.granted ? start() : go(p.canAskAgain ? "ask" : "blocked")))
       .catch(() => go("ask"));
+    const turnRef = turn;
     return () => {
-      turn.current++;
+      turnRef.current++;
       safeStop();
     };
   }, [visible, start, safeStop]);

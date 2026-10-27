@@ -38,14 +38,14 @@ export function StartVoteButton({ title, craving, place, options }: { title: str
     <>
       <Pressable testID="start-group-vote-button" style={({ pressed }) => [styles.btn, pressed && { transform: [{ scale: 0.98 }] }]} onPress={() => { haptic(); setOpen(true); }} disabled={options.length < 2}>
         <Icon name="account-group" size={22} color={colors.onBrandSecondary} />
-        <Text style={styles.text}>Can't decide? Start a group vote</Text>
+        <Text style={styles.text}>Can’t decide? Start a group vote</Text>
       </Pressable>
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)} testID="vote-timer-backdrop" />
         <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.xl }]} testID="vote-timer-sheet">
           <View style={styles.handle} />
           <Text style={styles.sheetTitle}>How long should voting last?</Text>
-          <Text style={styles.sheetSub}>When time's up we close the vote and announce the winner automatically.</Text>
+          <Text style={styles.sheetSub}>When time’s up we close the vote and announce the winner automatically.</Text>
           <View style={styles.durRow}>
             {DURATIONS.map((d) => {
               const on = d.minutes === minutes;

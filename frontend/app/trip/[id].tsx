@@ -86,7 +86,7 @@ export default function TripDetail() {
               <Icon name="google" size={18} color={colors.onSurface} />
               <Text style={styles.gText}>Add to Google Calendar</Text>
             </Pressable>
-            <Text style={styles.note}>We'll ask for calendar access so your meal and picks show up on the day.</Text>
+            <Text style={styles.note}>We’ll ask for calendar access so your meal and picks show up on the day.</Text>
           </View>
           <Text style={styles.section}>Where to eat</Text>
           <StartVoteButton title={`${t.meal[0].toUpperCase()}${t.meal.slice(1)} in ${t.destination} — where to?`} craving={t.craving} place={t.destination} options={t.options} />

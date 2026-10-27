@@ -116,7 +116,7 @@ export default function PollScreen() {
       {poll.isLoading && <ActivityIndicator style={{ marginTop: spacing.xxl }} size="large" color={colors.brandPrimary} testID="poll-loading" />}
       {poll.isError && !p && (
         <Pressable testID="poll-retry-button" onPress={() => poll.refetch()} style={{ padding: spacing.xl }}>
-          <Text style={styles.muted}>Couldn't load this vote. Tap to retry.</Text>
+          <Text style={styles.muted}>Couldn’t load this vote. Tap to retry.</Text>
         </Pressable>
       )}
       {p && (

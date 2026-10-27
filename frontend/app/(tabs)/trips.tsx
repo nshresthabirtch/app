@@ -57,7 +57,7 @@ export default function TripsScreen() {
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.title} testID="trips-title">Hungry later</Text>
-        <Text style={styles.sub}>Travelling? We'll book a meal in your calendar.</Text>
+        <Text style={styles.sub}>Travelling? We’ll book a meal in your calendar.</Text>
       </View>
       <KeyboardAwareScrollView bottomOffset={24} contentContainerStyle={[styles.content, { paddingBottom: bottomChrome + spacing.xl }]} keyboardShouldPersistTaps="handled">
         <View style={styles.form} testID="trip-form">

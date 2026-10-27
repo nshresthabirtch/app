@@ -75,7 +75,7 @@ export default function SavedScreen() {
         {!favs.isLoading && (favs.data ?? []).length === 0 && (
           <View style={styles.emptyBox} testID="favorites-empty">
             <Icon name="heart-outline" size={44} color={colors.brandPrimary} />
-            <Text style={styles.emptyTitle}>You haven't saved any spots yet.</Text>
+            <Text style={styles.emptyTitle}>You haven’t saved any spots yet.</Text>
             <Text style={styles.empty}>Tap the heart on any recommendation.</Text>
           </View>
         )}

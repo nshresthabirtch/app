@@ -5,6 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 import os
+import asyncio
 import json
 import re
 import uuid
@@ -137,7 +138,7 @@ For trips resolve relative dates against TODAY; if no date given use tomorrow; i
 Return 6 options of REAL, well-known places that actually exist near the given location/destination when possible."""
 
 
-async def ask_llm(prompt: str) -> dict:
+async def _stream_llm(prompt: str) -> str:
     chat = LlmChat(api_key=LLM_KEY, session_id=str(uuid.uuid4()), system_message=SYSTEM).with_model("openai", "gpt-5.5")
     out = ""
     async for ev in chat.stream_message(UserMessage(text=prompt)):
@@ -145,6 +146,12 @@ async def ask_llm(prompt: str) -> dict:
             out += ev.content
         elif isinstance(ev, StreamDone):
             break
+    return out
+
+
+async def ask_llm(prompt: str) -> dict:
+    # Run in a worker thread with its own loop so slow LLM calls never block /health.
+    out = await asyncio.to_thread(lambda: asyncio.run(_stream_llm(prompt)))
     m = re.search(r"\{.*\}", out, re.S)
     if not m:
         raise HTTPException(502, "Could not understand the food oracle. Try again.")
@@ -184,10 +191,12 @@ async def transcribe(audio: UploadFile = File(...)):
         tmp.write(data)
         path = tmp.name
     try:
-        stt = OpenAISpeechToText(api_key=LLM_KEY)
-        with open(path, "rb") as f:
-            resp = await stt.transcribe(file=f, model="gpt-4o-mini-transcribe", response_format="json",
-                                        prompt="I'm hungry for pizza. I'm travelling to Paris next Friday for lunch.")
+        async def _run():
+            stt = OpenAISpeechToText(api_key=LLM_KEY)
+            with open(path, "rb") as f:
+                return await stt.transcribe(file=f, model="gpt-4o-mini-transcribe", response_format="json",
+                                            prompt="I'm hungry for pizza. I'm travelling to Paris next Friday for lunch.")
+        resp = await asyncio.to_thread(lambda: asyncio.run(_run()))
         return {"text": (resp.text or "").strip()}
     except Exception as e:
         logger.exception("transcribe failed")

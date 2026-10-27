@@ -59,7 +59,7 @@ export function RestaurantCard({ r, index, craving, place }: { r: Restaurant; in
         <View style={styles.actions}>
           <Pressable testID={`restaurant-directions-${index}`} style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]} onPress={() => { haptic(); Linking.openURL(mapsUrl(r, place)); }}>
             <Icon name="navigation-variant" size={18} color={colors.onBrandPrimary} />
-            <Text style={styles.primaryText}>Let's go</Text>
+            <Text style={styles.primaryText}>Let’s go</Text>
           </Pressable>
           <Pressable testID={`restaurant-save-${index}`} style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]} onPress={() => toggle.mutate()} disabled={toggle.isPending}>
             <Icon name={fav ? "heart" : "heart-outline"} size={22} color={colors.brandPrimary} />

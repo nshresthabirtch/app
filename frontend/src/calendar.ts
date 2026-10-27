@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import * as Calendar from "expo-calendar";
+import * as Calendar from "expo-calendar/legacy";
 import type { Trip } from "./api";
 
 const MEAL_TIMES = { breakfast: [8, 30], lunch: [12, 30], dinner: [19, 0] } as const;

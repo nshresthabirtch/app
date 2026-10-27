@@ -1,0 +1,32 @@
+{
+  "summary": "Tested the fix for the /health event loop block. Fixed: GET localhost:8001/health stayed fast during concurrent slow calls. Run 1 sent 3 parallel POST /api/hungry (ramen, Austin) plus 1 POST /api/trips; these took 10-18s while 36 polls of /health every 0.5s all returned 200 (max latency 4.9ms). Run 2 sent 2 parallel POST /api/transcribe with a real TTS mp3 plus 1 /api/hungry; 33 polls all returned 200 (max 2.9ms). The transcript was \"I'm hungry for pizza in Austin.\". Public /health polling during 2 parallel hungry calls stayed under 2s. Regression: 48/48 backend pytest pass across the hungry, polls, poll timer and new health-under-load suites. /api/hungry eat_now and trip intents return correct JSON, and the tiny /api/transcribe file returns {text:''}. Frontend smoke at 390x844: the app loads and the pizza chip returns results ('Pizza party, no passport required!'). Trip detail shows 'Add to my calendar' and 'Add to Google Calendar' with no page errors. expo-calendar/legacy (v58.0.6) exports every API used in calendar.ts. No deprecated packages found (expo-av, expo-barcode-scanner and expo-background-fetch are absent). One deprecation warning: expo-router/unstable-native-tabs.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "ask_llm / transcribe (asyncio.to_thread + asyncio.run)", "issue": "Every request creates a new event loop in a worker thread. litellm then logs 'RuntimeWarning: coroutine close_litellm_async_clients was never awaited' on loop close. This does no harm but can leak async clients. Concurrency is capped by the default thread pool (min(32, cpu+4)), so a large burst would queue; /health is unaffected."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "NativeTabs import", "issue": "expo-router/unstable-native-tabs is deprecated (Metro warning); use expo-router/native-tabs. Reference: /app/frontend/app/(tabs)/_layout.tsx:4"}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_health_under_load.py", "/app/backend/tests/make_tts.py", "/app/test_reports/pytest/pytest_results_iter4.xml"],
+  "action_items": [
+    "Optional: change the import in app/(tabs)/_layout.tsx from expo-router/unstable-native-tabs to expo-router/native-tabs",
+    "Optional: consider a shared background event loop thread (or a bounded executor) instead of asyncio.run per request, to avoid the litellm client-cleanup warnings"
+  ],
+  "critical_code_review_comments": [
+    "The /health route is defined on app (not api_router) and is async with no I/O, which is correct for the nginx probe.",
+    "On web, addToDeviceCalendar returns 'unsupported' and falls back to opening the Google Calendar URL, which is expected. On native it uses the legacy API surface, which is correct for SDK expo-calendar 58."
+  ],
+  "updated_files": ["/app/backend/tests/test_health_under_load.py", "/app/backend/tests/make_tts.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None persisted. TEST_ trips were created and then deleted.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run `python tests/make_tts.py` (from /app/backend) to create /tmp/hungry.mp3 before test_health_under_load.py. Use `-n 0 -s` to see latency prints, because pytest.ini enables xdist. Export EXPO_PUBLIC_BACKEND_URL from frontend/.env. No ffmpeg or espeak is installed; use OpenAITextToSpeech from emergentintegrations instead."
+}

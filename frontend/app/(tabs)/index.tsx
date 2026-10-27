@@ -106,7 +106,7 @@ export default function EatScreen() {
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.topRow}>
-          <Text style={styles.brand} testID="app-title">I'm Hungry</Text>
+          <Text style={styles.brand} testID="app-title">I’m Hungry</Text>
           <Pressable testID="budget-toggle" style={styles.pill} onPress={() => { haptic(); setBudget(BUDGETS[(BUDGETS.indexOf(budget) + 1) % BUDGETS.length]); }}>
             <Icon name="cash" size={16} color={colors.onSurfaceTertiary} />
             <Text style={styles.pillText}>{budget ?? "Any $"}</Text>
@@ -178,7 +178,7 @@ export default function EatScreen() {
               <Icon name="silverware-variant" size={56} color={colors.brandPrimary} />
             </View>
             <Text style={styles.emptyTitle}>What are you hungry for?</Text>
-            <Text style={styles.emptySub}>Tap the mic and say {"\u201C"}I'm hungry for soup{"\u201D"} — or plan ahead with {"\u201C"}I'm going to Lisbon Saturday, hungry for dinner{"\u201D"}.</Text>
+            <Text style={styles.emptySub}>Tap the mic and say {"\u201C"}I’m hungry for soup{"\u201D"} — or plan ahead with {"\u201C"}I’m going to Lisbon Saturday, hungry for dinner{"\u201D"}.</Text>
           </View>
         )}
       </ScrollView>
@@ -191,7 +191,7 @@ export default function EatScreen() {
         </Pressable>
         <Pressable testID="mic-fab" style={({ pressed }) => [styles.fab, pressed && { transform: [{ scale: 0.94 }] }]} onPress={() => { haptic("medium"); setVoice(true); }}>
           <Icon name="microphone" size={30} color={colors.onBrandPrimary} />
-          <Text style={styles.fabText}>I'm hungry…</Text>
+          <Text style={styles.fabText}>I’m hungry…</Text>
         </Pressable>
       </View>
 
