@@ -1,6 +1,6 @@
-# expo
+# Im Hungry
 
-A small starter for a mobile app with a backend: **FastAPI with MongoDB**
+A small silly starter app for a mobile app with a backend: **FastAPI with MongoDB**
 behind an **Expo + expo-router** app in strict TypeScript. The app runs as a
 web preview in the browser, in Expo Go on a phone, and as a native build.
 Nothing app-specific is built yet; it is a skeleton to build on.
