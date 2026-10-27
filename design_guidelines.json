@@ -1,0 +1,146 @@
+{
+  "app_name": "I'm Hungry",
+  "personality": "4 Tactile / Playful",
+  "personality_one_liner": "A warm, exciting, and highly interactive food discovery experience that feels playful and appetizing.",
+  "color": {
+    "surface": "#FFFBF7",
+    "onSurface": "#2C2622",
+    "surfaceSecondary": "#FFFFFF",
+    "onSurfaceSecondary": "#2C2622",
+    "surfaceTertiary": "#F2E8E0",
+    "onSurfaceTertiary": "#4A423C",
+    "surfaceInverse": "#2C2622",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#F25C54",
+    "onBrand": "#FFFFFF",
+    "brandPrimary": "#F25C54",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#F7B267",
+    "onBrandSecondary": "#2C2622",
+    "brandTertiary": "#FBE6D8",
+    "onBrandTertiary": "#D1453F",
+    "success": "#60A561",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F7B267",
+    "onWarning": "#2C2622",
+    "error": "#D1453F",
+    "onError": "#FFFFFF",
+    "info": "#78A1BB",
+    "onInfo": "#FFFFFF",
+    "border": "#E8DED6",
+    "borderStrong": "#D6C7BC",
+    "divider": "#E8DED6",
+    "muted": "#8C7F77"
+  },
+  "typography": {
+    "displayFontFamily": "Nunito",
+    "textFontFamily": "Nunito",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous touch targets and comfortable breathing room for playful tactile components. Intentional padding around cards.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": 2,
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Bottom sheet handles/headers",
+      "Featured/hero cards over photo backdrops",
+      "Floating Action Buttons (like the Voice Mic)"
+    ],
+    "dont's": [
+      "Every list row",
+      "Form inputs",
+      "Body content areas"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home (Eat)",
+      "purpose": "Primary food discovery feed triggered by voice or quick craving chips.",
+      "states": {
+        "loading": "Skeleton cards representing restaurant layouts.",
+        "empty": "Playful illustration of an empty plate with a prompt 'Tell me what you're hungry for!'",
+        "error": "Illustration of a spilled drink with 'Oops, couldn't fetch that. Try again.'"
+      },
+      "layout": "Sticky large floating mic button (FAB) at the bottom. Horizontal scroll for craving chips at the top. Recommendations arranged in single-column tactile cards filling screen width minus padding."
+    },
+    {
+      "name": "Trip Planner",
+      "purpose": "Plan food itineraries for future travels with an AI generated schedule.",
+      "states": {
+        "loading": "Centered spinner with a 'Packing your bags...' message.",
+        "empty": "Illustration of a map/suitcase with 'Plan your next food adventure.'",
+        "error": "Text 'Failed to load itinerary.' with a Retry button."
+      },
+      "layout": "Form fields stacked vertically for destination and date. A primary sticky 'Generate Itinerary' CTA at the bottom. Generated recommendations appear as visually rich cards."
+    },
+    {
+      "name": "Saved",
+      "purpose": "Archive of favorite spots and past trip itineraries.",
+      "states": {
+        "loading": "Skeleton list items.",
+        "empty": "Illustration of a bookmark with 'You haven't saved any spots yet.'",
+        "error": "Error message with a 'Retry' button."
+      },
+      "layout": "Two-column grid layout for saved restaurants with consistent card heights, and a vertical list layout for saved trips."
+    }
+  ],
+  "images": {
+    "pizza_hero": {
+      "url": "https://images.unsplash.com/photo-1593504049359-74330189a345?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxkZWxpY2lvdXMlMjBob3QlMjBwaXp6YSUyMHNsaWNlfGVufDB8fHx8MTc5MzEzMTQ3N3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Delicious hot pizza slice with stretching cheese"
+    },
+    "sushi_plate": {
+      "url": "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwxfHxmcmVzaCUyMHN1c2hpJTIwcGxhdGV8ZW58MHx8fHwxNzkzMTMxNDc3fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Fresh sushi on a black square plate"
+    },
+    "restaurant_interior": {
+      "url": "https://images.unsplash.com/photo-1667388968964-4aa652df0a9b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzJ8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhZXN0aGV0aWMlMjByZXN0YXVyYW50JTIwaW50ZXJpb3J8ZW58MHx8fHwxNzkzMTMxNDc2fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Modern aesthetic restaurant interior with wooden tables"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Implement a prominent 'push-to-talk' style mic FAB that follows the scroll or sits sticky at the bottom for quick voice entry.",
+    "Use a bottom sheet overlay (@gorhom/bottom-sheet) for the voice recording state so the context of the main feed isn't lost.",
+    "Provide real-time UI feedback (like transcription text or audio waves) during voice input.",
+    "Build thick, tactile cards for restaurant recommendations with large edge-to-edge images.",
+    "MANDATORY: If text is placed over imagery on restaurant cards, a vertical gradient-to-dark scrim MUST be applied to ensure WCAG readability.",
+    "Use the designated warm color palette (coral, peach, warm off-white). DO NOT use any blue, purple, or indigo hues, as they contradict the appetizing food-forward directive.",
+    "Haptics: Ensure tactile feedback is tied to major actions (tapping the mic, selecting a craving chip, saving a restaurant).",
+    "For the 'Surprise me' roulette, incorporate a playful, delightful interaction or animation to build excitement."
+  ]
+}

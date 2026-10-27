@@ -1,0 +1,41 @@
+{
+  "summary": "Tested the new Group Food Vote feature end to end. Backend: 11/11 pytest pass. The poll API handles create (at least 2 options, capped at 6), list, get, vote (changing a vote replaces it, invalid choice gives 400, voter_id under 4 chars gives 422), close (winner set, null on a tie, voting after close gives 400), delete, 404 for bad ids, and the HTML /page. The browser voting page works: you can enter a name, vote, change the vote and the checkmark moves, and the vote and name persist after a reload. In the app, pizza chip -> results -> start-group-vote-button creates a poll and goes to /poll/[id]. Tapping poll-option-0 raises the count from 0 to 1 and shows the checkmark. Changing the vote works. poll-close-button shows poll-winner and hides share and close. The trip detail start-group-vote-button creates a poll titled 'Lunch in Rome — where to?'. The Saved tab 'Group votes' list (poll-item-*) opens the poll screen. Deleting a poll from the poll screen goes back. One functional gap: on web, the share button does nothing in browsers without navigator.share. No deprecated Expo packages were found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "DELETE /api/polls/{id}", "issue": "Returns 200 {ok:true} for ids that are invalid or don't exist instead of 404. This doesn't match GET, vote and close, which return 404."},
+      {"endpoint": "POST /api/polls/{id}/close", "issue": "A poll with 0 votes can be closed through the API, and closing an already-closed poll is accepted again. The UI disables the button when there are 0 votes, but the API has no guard."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Poll share button (web)", "issue": "Share.share on react-native-web needs navigator.share. Desktop Chrome, Firefox and headless browsers don't have it, so the rejection is swallowed by .catch(() => {}). The user gets no feedback and the link is not copied. Reference: /app/frontend/app/poll/[id].tsx:59", "testID": "poll-share-button", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Poll screen", "issues": [
+        "The success toast ('It's Domino's Pizza!') shows at the top on top of the header back button and title. White text on light green has low contrast.",
+        "Every vote cast from the app is labeled 'Me' (hardcoded name). If two app users vote, both show as 'Me' in the voter names line.",
+        "The delete (trash) button deletes the poll right away with no confirmation."
+      ]},
+      {"screen": "Saved tab", "issues": ["Group votes list shows only the 5 latest polls (slice(0,5)) and has no 'see all'."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_polls_api.py", "/app/test_reports/pytest/pytest_polls.xml"],
+  "action_items": [
+    "Add a web fallback to the poll share button: if Platform.OS === 'web' and navigator.share is missing, or Share.share rejects, copy pollLink(p.id) to the clipboard (expo-clipboard or navigator.clipboard) and show a toast 'Link copied'.",
+    "Optional: return 404 from DELETE /api/polls/{id} when the poll doesn't exist, and reject closing a poll with 0 votes or one that is already closed (400).",
+    "Optional: let the app user set a voter name instead of the hardcoded 'Me', ask for confirmation before deleting a poll, and move the toast so it doesn't cover the header."
+  ],
+  "critical_code_review_comments": [
+    "poll/[id].tsx keeps polling every 4s (refetchInterval) even after the poll is closed. Stop when p.closed.",
+    "StartVoteButton creates a new poll on every tap. Repeated taps on the same results make duplicate polls (no dedupe)."
+  ],
+  "updated_files": ["/app/backend/tests/test_polls_api.py"],
+  "success_rate": {"backend": "100%", "frontend": "95% (all requested flows pass; share on web gives no result)"},
+  "seed_data_creation": "Created TEST_ polls during the tests and deleted them all, along with the UI-created pizza and Rome polls. The 'Test vote' poll made by the main agent was left in place.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Polls API regression tests are in /app/backend/tests/test_polls_api.py. Voter identity is stored in localStorage ('voter_id' in the app, 'ih_voter' on the HTML page), so each browser context is a separate voter. The HTML vote page is at {EXPO_PUBLIC_BACKEND_URL}/api/polls/{id}/page. Take poll-winner screenshots after about 2s because of the ZoomIn animation."
+}
