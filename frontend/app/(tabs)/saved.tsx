@@ -63,7 +63,7 @@ export default function SavedScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.pollTitle} numberOfLines={1}>{p.title}</Text>
               <Text style={styles.favMeta} numberOfLines={1}>
-                {p.closed ? (p.winner != null ? `Winner: ${p.options[p.winner].name}` : "Closed · tie") : `${p.total} vote${p.total === 1 ? "" : "s"} · live`}
+                {p.closed ? (p.winner != null ? `Winner: ${p.options[p.winner].name}` : "Closed") : `${p.total} vote${p.total === 1 ? "" : "s"} · ${p.ends_at ? `ends ${new Date(p.ends_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "live"}`}
               </Text>
             </View>
             <Icon name="chevron-right" size={22} color={colors.muted} />

@@ -40,8 +40,18 @@ export type Poll = {
   counts: number[];
   total: number;
   winner: number | null;
+  decided: "votes" | "tiebreak" | "no_votes" | null;
   closed: boolean;
+  ends_at: string | null;
 };
+
+export function formatLeft(ms: number) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+  return h ? `${h}h ${mm}:${ss}` : `${mm}:${ss}`;
+}
 export const pollLink = (id: string) => `${API}/polls/${id}/page`;
 
 export async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {

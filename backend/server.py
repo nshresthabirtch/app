@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 from typing import List, Optional, Annotated, Literal
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
 from emergentintegrations.llm.openai import OpenAISpeechToText
@@ -301,7 +301,11 @@ class Poll(BaseDocument):
     options: List[Restaurant]
     votes: List[Vote] = []
     closed: bool = False
+    ends_at: Optional[str] = None  # ISO UTC; auto-closes when passed
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+    def expired(self) -> bool:
+        return bool(self.ends_at) and datetime.fromisoformat(self.ends_at) <= datetime.now(timezone.utc)
 
     def public(self) -> dict:
         counts = [0] * len(self.options)
@@ -309,12 +313,20 @@ class Poll(BaseDocument):
             if 0 <= v.choice < len(counts):
                 counts[v.choice] += 1
         top = max(counts) if counts else 0
-        leaders = [i for i, c in enumerate(counts) if c == top and top > 0]
+        leaders = [i for i, c in enumerate(counts) if c == top]
+        winner, decided = None, None
+        if len(leaders) == 1 and top > 0:
+            winner, decided = leaders[0], "votes"
+        elif self.closed:
+            # Tie or no votes: break it with the highest-rated place so there's always a winner.
+            winner = max(leaders, key=lambda i: self.options[i].rating)
+            decided = "tiebreak" if top > 0 else "no_votes"
         d = self.out()
         d["votes"] = [{"voter_id": v.voter_id, "name": v.name, "choice": v.choice} for v in self.votes]
         d["counts"] = counts
         d["total"] = len(self.votes)
-        d["winner"] = leaders[0] if len(leaders) == 1 else None
+        d["winner"] = winner
+        d["decided"] = decided
         return d
 
 
@@ -323,6 +335,7 @@ class PollRequest(BaseModel):
     craving: str = ""
     place: str = ""
     options: List[Restaurant]
+    duration_minutes: Optional[int] = Field(default=None, ge=1, le=1440)
 
 
 class VoteRequest(BaseModel):
@@ -337,14 +350,22 @@ async def load_poll(poll_id: str) -> Poll:
     d = await db.polls.find_one({"_id": ObjectId(poll_id)})
     if not d:
         raise HTTPException(404, "Vote not found")
-    return Poll.from_mongo(d)
+    return await auto_close(Poll.from_mongo(d))
+
+
+async def auto_close(poll: Poll) -> Poll:
+    if not poll.closed and poll.expired():
+        await db.polls.update_one({"_id": ObjectId(poll.id)}, {"$set": {"closed": True}})
+        poll.closed = True
+    return poll
 
 
 @api_router.post("/polls")
 async def create_poll(req: PollRequest):
     if len(req.options) < 2:
         raise HTTPException(400, "Need at least 2 places to vote on")
-    poll = Poll(title=req.title[:80], craving=req.craving, place=req.place, options=req.options[:6])
+    ends_at = (datetime.now(timezone.utc) + timedelta(minutes=req.duration_minutes)).isoformat() if req.duration_minutes else None
+    poll = Poll(title=req.title[:80], craving=req.craving, place=req.place, options=req.options[:6], ends_at=ends_at)
     r = await db.polls.insert_one(poll.to_mongo())
     poll.id = str(r.inserted_id)
     return poll.public()
@@ -353,7 +374,7 @@ async def create_poll(req: PollRequest):
 @api_router.get("/polls")
 async def list_polls():
     docs = await db.polls.find().sort("created_at", -1).to_list(50)
-    return [Poll.from_mongo(d).public() for d in docs]
+    return [(await auto_close(Poll.from_mongo(d))).public() for d in docs]
 
 
 @api_router.get("/polls/{poll_id}")
@@ -368,11 +389,9 @@ async def vote(poll_id: str, req: VoteRequest):
         raise HTTPException(400, "Voting is closed")
     if not 0 <= req.choice < len(poll.options):
         raise HTTPException(400, "Invalid choice")
-    votes = [v for v in poll.votes if v.voter_id != req.voter_id]
-    votes.append(Vote(voter_id=req.voter_id, name=req.name.strip(), choice=req.choice))
-    await db.polls.update_one({"_id": ObjectId(poll_id)}, {"$set": {"votes": [v.model_dump() for v in votes]}})
-    poll.votes = votes
-    return poll.public()
+    await db.polls.update_one({"_id": ObjectId(poll_id)}, {"$pull": {"votes": {"voter_id": req.voter_id}}})
+    await db.polls.update_one({"_id": ObjectId(poll_id)}, {"$push": {"votes": Vote(voter_id=req.voter_id, name=req.name.strip(), choice=req.choice).model_dump()}})
+    return (await load_poll(poll_id)).public()
 
 
 @api_router.post("/polls/{poll_id}/close")
@@ -405,8 +424,8 @@ input{width:100%;height:50px;border-radius:999px;border:1.5px solid #E8DED6;padd
 .in{position:relative;z-index:1;display:flex;justify-content:space-between;gap:12px;align-items:center}
 .n{font-weight:900;font-size:17px}.m{color:#8C7F77;font-size:13px;font-weight:600;margin-top:2px}.c{font-weight:900;color:#D1453F;font-size:18px}
 .done{background:#F25C54;color:#fff;border-radius:20px;padding:16px;margin-bottom:16px;font-weight:800}
-.err{color:#D1453F;font-weight:700}
-</style></head><body><div class="wrap"><div class="k">I'M HUNGRY · GROUP VOTE</div><h1 id="t">Loading…</h1><p class="sub" id="s"></p>
+.err{color:#D1453F;font-weight:700}.cd{display:inline-block;background:#2C2622;color:#fff;border-radius:999px;padding:8px 14px;font-weight:800;margin:0 0 16px}.cd:empty{display:none}
+</style></head><body><div class="wrap"><div class="k">I'M HUNGRY · GROUP VOTE</div><h1 id="t">Loading…</h1><p class="sub" id="s"></p><p class="cd" id="cd"></p>
 <div id="w"></div><input id="name" placeholder="Your name (optional)" maxlength="40"><div id="o"></div><p class="err" id="e"></p></div>
 <script>
 const PID=__PID__;const api=location.pathname.replace(/\\/page$/,'');
@@ -414,8 +433,8 @@ let vid=localStorage.getItem('ih_voter');if(!vid){vid='w'+Math.random().toString
 const nm=document.getElementById('name');nm.value=localStorage.getItem('ih_name')||'';
 function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
 function render(p){document.getElementById('t').textContent=p.title;
-document.getElementById('s').textContent=p.closed?'Voting closed':(p.total+' vote'+(p.total==1?'':'s')+' so far · tap a place to vote');
-const w=document.getElementById('w');w.innerHTML='';if(p.closed&&p.winner!=null){w.appendChild(el('div','done','Winner: '+p.options[p.winner].name))}
+cur=p;document.getElementById('s').textContent=p.closed?'Voting closed':(p.total+' vote'+(p.total==1?'':'s')+' so far · tap a place to vote');tick();
+const w=document.getElementById('w');w.innerHTML='';if(p.closed&&p.winner!=null){w.appendChild(el('div','done','\\u{1F3C6} Winner: '+p.options[p.winner].name+(p.decided==='tiebreak'?' (tie broken by rating)':p.decided==='no_votes'?' (no votes - top rated pick)':'')))}
 const mine=(p.votes.find(v=>v.voter_id===vid)||{}).choice;const o=document.getElementById('o');o.innerHTML='';
 p.options.forEach((r,i)=>{const d=el('div','opt'+(mine===i?' mine':''));const b=el('div','bar');b.style.width=(p.total?Math.round(100*p.counts[i]/p.total):0)+'%';d.appendChild(b);
 const inn=el('div','in');const l=el('div');l.appendChild(el('div','n',(mine===i?'\\u2713 ':'')+r.name));l.appendChild(el('div','m',[r.cuisine,r.price,r.signature_dish?'try: '+r.signature_dish:''].filter(Boolean).join(' · ')));
@@ -423,7 +442,10 @@ inn.appendChild(l);inn.appendChild(el('div','c',String(p.counts[i])));d.appendCh
 async function load(){try{const r=await fetch(api);if(!r.ok)throw 0;render(await r.json())}catch(e){document.getElementById('t').textContent='Vote not found'}}
 async function vote(i){localStorage.setItem('ih_name',nm.value);const r=await fetch(api+'/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({voter_id:vid,name:nm.value,choice:i})});
 const j=await r.json();if(r.ok){document.getElementById('e').textContent='';render(j)}else document.getElementById('e').textContent=j.detail||'Could not vote'}
-load();setInterval(load,5000);
+let cur=null;function tick(){const c=document.getElementById('cd');if(!cur||cur.closed||!cur.ends_at){c.textContent='';return}
+const ms=new Date(cur.ends_at)-Date.now();if(ms<=0){c.textContent='Time is up! Announcing the winner…';if(!tick.f){tick.f=1;setTimeout(load,800)}return}
+const s=Math.floor(ms/1000);c.textContent='\\u23F1 Closes in '+(s>=3600?Math.floor(s/3600)+'h ':'')+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+load();setInterval(load,5000);setInterval(tick,1000);
 </script></body></html>"""
 
 

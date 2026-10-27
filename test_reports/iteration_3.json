@@ -1,0 +1,38 @@
+{
+  "summary": "Tested the Vote Countdown Timer feature. Backend: 28/28 pytest pass (11 updated poll regression tests and 17 new timer tests). Covered: duration_minutes sets ends_at (1 and 1440 accepted; 0, -5, 1441 and 'abc' give 422; omitted or null gives ends_at null). Expired polls auto-close on GET /polls/{id}, on GET /polls, and on a direct vote; voting then returns 400 'Voting is closed'. Winner logic covers votes, tiebreak by highest rating among the tied options only, and no_votes. An open poll with a tie has winner null. Manual close with 0 votes returns 400. Frontend at 390x844: the pizza chip leads to results, and start-group-vote-button opens vote-timer-sheet with the 10/30/60/none options. 30 is selected by default, selection toggles, and tapping the backdrop dismisses the sheet. Choosing 10 min and tapping start navigates to /poll/[id], where the countdown ticks ('Closes in 09:59' -> '09:57'). A 1-minute poll created via the API auto-flipped to closed in the app with no reload: the poll-winner card ('THE GROUP HAS SPOKEN / TEST_Beta') and the toast 'Time's up! It's TEST_Beta!' appeared, and the countdown, share and close buttons were hidden. The web /page showed '⏱ Closes in 00:47', then after expiry '🏆 Winner: TEST_One' with 'Voting closed'. The Saved tab poll-item shows '0 votes · ends 8:51 PM'. One bug: after a manual close the toast wrongly says 'Time's up! It's X!'. No deprecated Expo packages were found in the files reviewed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/polls/{id}/vote", "issue": "Each vote reads the poll and then $sets the whole votes array. Two friends voting at the same time can therefore lose a vote, and this gets more likely now that a timer encourages last-second voting. Use an atomic update ($pull the voter_id, then $push the new vote, filtered on closed:false) instead of $set on the full array. This is a pre-existing issue."},
+      {"endpoint": "auto_close (lazy)", "issue": "A poll is only marked closed in the DB when someone reads it. That is fine for the current endpoints, but any future query that filters on 'closed' directly will see expired polls as still open."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PollScreen announce-winner effect", "issue": "After a MANUAL close (poll-close-button), the toast shows \"Time's up! It's X!\". The wasOpen effect at poll/[id].tsx:70-78 fires on any open->closed change, so it overwrites the close mutation's 'It's X!' toast at line 47. The same wrong text also appears when another device closes the vote manually. Reproduced: the toast read \"Time's up! It's TEST_Gamma!\" on a poll that had no timer.", "testID": "toast-message", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Poll screen", "issues": ["The toast is drawn at the top and overlaps the header back and delete buttons while it is visible (cosmetic)."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_polls_api.py", "/app/backend/tests/test_poll_timer.py", "/app/test_reports/pytest/pytest_iter3.xml"],
+  "action_items": [
+    "Fix the wrong toast in poll/[id].tsx: show \"Time's up! It's X!\" only when p.ends_at is set and Date.parse(p.ends_at) <= Date.now(), otherwise show something like 'Vote closed — it's X!'. Also stop the close mutation's onSuccess toast and the effect from both firing.",
+    "Remove the unreachable 'Voting closed — it's a tie!' branch in close onSuccess (poll/[id].tsx:47); a closed poll now always has a winner.",
+    "Optional: make voting atomic in the backend (see minor backend issue)."
+  ],
+  "critical_code_review_comments": [
+    "The client countdown uses the device clock. If the device clock is behind the server, timeUp triggers only one refetch, which may still come back open; the 4s refetchInterval eventually catches up, so the delay is at most about 4s. Acceptable.",
+    "The winner tiebreak uses max() over the tied options, so equal ratings resolve to the lowest index. This is deterministic and fine.",
+    "I removed the hardcoded default URL from os.environ.get in test_polls_api.py, per the guidelines."
+  ],
+  "updated_files": ["/app/backend/tests/test_polls_api.py", "/app/backend/tests/test_poll_timer.py"],
+  "success_rate": {"backend": "100% (28/28)", "frontend": "95% (all timer flows work; wrong toast text on manual close)"},
+  "seed_data_creation": "Test polls (TEST_ prefix and one UI-created pizza poll) were deleted after testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Simulate expiry with pymongo or mongosh by setting ends_at to '2020-01-01T00:00:00+00:00' (test_poll_timer.py has an expire() helper that reads MONGO_URL from backend/.env). Run the tests with EXPO_PUBLIC_BACKEND_URL exported from frontend/.env. Close the vote-timer-sheet slide animation takes about 300ms, so wait after opening it before clicking options. Toast testID is toast-message; only one toast shows at a time and the latest replaces the previous.",
+  "rca_of_issue": "Manual-close toast: setPoll(p) in close.onSuccess changes the cached poll from open to closed. The useEffect on [p] sees wasOpen.current === true and p.closed, so it unconditionally calls toast(\"Time's up! ...\"), which replaces the close toast. Fix: check expiry (ends_at <= now) before using the Time's-up wording, or set a ref flag in close.onSuccess to skip the effect."
+}

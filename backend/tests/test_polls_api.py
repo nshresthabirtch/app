@@ -3,7 +3,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL", "https://hungry-trip--8hy9lrsl.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("EXPO_PUBLIC_BACKEND_URL").rstrip("/")
 API = f"{BASE_URL}/api"
 
 OPTS = [
@@ -108,12 +108,22 @@ def test_close_with_winner_then_vote_blocked(s, poll):
     assert r.status_code == 400
 
 
-def test_close_tie_winner_null(s, poll):
-    pid = poll["id"]
+def test_open_tie_winner_null_closed_tie_tiebreak(s):
+    # Tie while open -> no winner; after close -> highest rating among tied wins
+    opts = [{"name": "TEST_A", "rating": 4.1}, {"name": "TEST_B", "rating": 4.8}, {"name": "TEST_C", "rating": 5.0}]
+    p = s.post(f"{API}/polls", json={"title": "TEST_tie", "options": opts}).json()
+    pid = p["id"]
     s.post(f"{API}/polls/{pid}/vote", json={"voter_id": "TEST_b1", "choice": 0})
-    s.post(f"{API}/polls/{pid}/vote", json={"voter_id": "TEST_b2", "choice": 1})
+    r = s.post(f"{API}/polls/{pid}/vote", json={"voter_id": "TEST_b2", "choice": 1})
+    assert r.json()["winner"] is None and r.json()["decided"] is None
     r = s.post(f"{API}/polls/{pid}/close")
-    assert r.json()["closed"] is True and r.json()["winner"] is None
+    assert r.json()["closed"] is True and r.json()["winner"] == 1 and r.json()["decided"] == "tiebreak"
+    s.delete(f"{API}/polls/{pid}")
+
+
+def test_close_without_votes_400(s, poll):
+    r = s.post(f"{API}/polls/{poll['id']}/close")
+    assert r.status_code == 400
 
 
 # --- delete ---

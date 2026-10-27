@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Linking, Platform, Pressable, ScrollView, Share, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
 import Icon from "@react-native-vector-icons/material-design-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, haptic, mapsUrl, Poll, pollLink } from "@/src/api";
+import { api, formatLeft, haptic, mapsUrl, Poll, pollLink } from "@/src/api";
 import { storage } from "@/src/utils/storage";
 import { useToast } from "@/src/components/Toast";
 import { makeStyles, radius, spacing, useTheme } from "@/src/theme";
@@ -44,7 +44,7 @@ export default function PollScreen() {
   });
   const close = useMutation({
     mutationFn: () => api<Poll>(`/polls/${id}/close`, { method: "POST" }),
-    onSuccess: (p) => { haptic("success"); setPoll(p); toast(p.winner != null ? `It's ${p.options[p.winner].name}!` : "Voting closed — it's a tie!", "success"); },
+    onSuccess: (p) => { haptic("success"); setPoll(p); },
     onError: (e: Error) => toast(e.message, "error"),
   });
   const del = useMutation({
@@ -53,6 +53,30 @@ export default function PollScreen() {
   });
 
   const p = poll.data;
+  const [now, setNow] = useState(Date.now());
+  const running = !!p?.ends_at && !p.closed;
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [running]);
+  const msLeft = p?.ends_at ? new Date(p.ends_at).getTime() - now : null;
+  const timeUp = running && msLeft !== null && msLeft <= 0;
+  const { refetch } = poll;
+  useEffect(() => {
+    if (timeUp) refetch();
+  }, [timeUp, refetch]);
+  // Announce the winner the moment the vote flips to closed while watching.
+  const wasOpen = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!p) return;
+    if (wasOpen.current && p.closed && p.winner != null) {
+      haptic("success");
+      const timedOut = !!p.ends_at && new Date(p.ends_at).getTime() <= Date.now();
+      toast(`${timedOut ? "Time's up! " : ""}It's ${p.options[p.winner].name}!`, "success");
+    }
+    wasOpen.current = !p.closed;
+  }, [p, toast]);
   const share = () => {
     if (!p) return;
     haptic();
@@ -102,11 +126,21 @@ export default function PollScreen() {
             {p.closed ? "Voting closed" : `${p.total} vote${p.total === 1 ? "" : "s"} so far · updates live`}
           </Text>
 
+          {running && msLeft !== null && (
+            <View style={styles.timer} testID="poll-countdown">
+              <Icon name="timer-outline" size={20} color={colors.onSurfaceInverse} />
+              <Text style={styles.timerText} testID="poll-countdown-text">
+                {timeUp ? "Time's up! Announcing the winner…" : `Closes in ${formatLeft(msLeft)}`}
+              </Text>
+            </View>
+          )}
           {winner && (
             <Animated.View entering={ZoomIn.springify()} style={styles.winner} testID="poll-winner">
               <Icon name="trophy" size={32} color={colors.onBrandPrimary} />
               <View style={{ flex: 1 }}>
-                <Text style={styles.winnerKicker}>THE GROUP HAS SPOKEN</Text>
+                <Text style={styles.winnerKicker}>
+                  {p.decided === "tiebreak" ? "TIE BROKEN BY RATING" : p.decided === "no_votes" ? "NO VOTES · TOP-RATED PICK" : "THE GROUP HAS SPOKEN"}
+                </Text>
                 <Text style={styles.winnerName}>{winner.name}</Text>
               </View>
               <Pressable testID="poll-winner-go-button" style={styles.goBtn} onPress={() => Linking.openURL(mapsUrl(winner, p.place))}>
@@ -171,6 +205,8 @@ const useStyles = makeStyles((c) => ({
   title: { fontSize: 28, fontWeight: "900", color: c.onSurface, letterSpacing: -0.5 },
   muted: { color: c.muted, fontWeight: "700", marginTop: spacing.xs, marginBottom: spacing.lg },
   winner: { flexDirection: "row", alignItems: "center", gap: spacing.md, backgroundColor: c.brandPrimary, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg, borderBottomWidth: 5, borderBottomColor: c.onBrandTertiary },
+  timer: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start", backgroundColor: c.surfaceInverse, borderRadius: radius.pill, paddingHorizontal: spacing.lg, height: 40, marginBottom: spacing.lg },
+  timerText: { color: c.onSurfaceInverse, fontWeight: "900", fontSize: 15, fontVariant: ["tabular-nums"] },
   winnerKicker: { color: c.onBrandPrimary, fontWeight: "800", fontSize: 11, letterSpacing: 1, opacity: 0.9 },
   winnerName: { color: c.onBrandPrimary, fontWeight: "900", fontSize: 22 },
   goBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: c.surfaceInverse, alignItems: "center", justifyContent: "center" },

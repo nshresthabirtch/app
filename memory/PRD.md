@@ -15,6 +15,7 @@ App called I'm Hungry. Say "I'm hungry for soup/pizza/XYZ" out loud → uses loc
 - expo-audio recording with silence auto-stop, expo-location, expo-calendar
 
 ## Implemented (Jun 2026)
+- Vote countdown timer: pick 10/30/60 min or no timer; poll auto-closes at deadline, always announces a winner (tie → highest rated, no votes → top-rated pick); live countdown in app and on web vote page
 - Group Food Vote: start a vote from results or a trip, share a link friends open in any browser (no app), live tallies, end vote → winner with directions; votes listed in Saved tab
 - Voice + text "I'm hungry for…", craving chips, budget toggle, Surprise-me dice
 - AI picks near location: cards with Let's go (Maps), save, share
